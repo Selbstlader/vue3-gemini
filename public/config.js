@@ -1,4 +1,4 @@
-const QUERY_BASE_URL = "http://127.0.0.1:3000"; // 接口请求基础地址
+const QUERY_BASE_URL = ""; // 使用相对路径，避免本地开发 URL
 const DEEP_SEEK = "https://api.deepseek.com"; // deepseek-gpt基础地址
 
 /**
