@@ -44,6 +44,17 @@
             </span>
             <span v-else>免费</span>
           </div> -->
+          <div class="model-settings" style="margin-bottom: 10px; text-align: left;">
+            <el-switch
+              v-model="useLocalMode"
+              active-text="本地模式（无需API）"
+              inactive-text="在线模式（需API）"
+              @change="handleModeChange"
+            />
+            <span style="font-size: 12px; margin-left: 10px; color: #999;" v-if="useLocalMode">
+              (使用本地预设回答，GitHub Pages 兼容)
+            </span>
+          </div>
           <div class="input-area" :class="isMobile ? 'left-space' : ''">
             <el-input v-model="queryKeys" id="keyInput" placeholder="请输入内容" show-word-limit @keydown.enter.native="(e) => {
               if (e.isComposing || loading) return;
@@ -93,6 +104,7 @@ const queryKeys = ref("");
 const openai = ref(null);
 const loading = ref(false);
 const messageRef = ref(null);
+const useLocalMode = ref(true); // 默认使用本地模式
 
 const queryInfos = ref({
   messages: [],
@@ -215,6 +227,14 @@ const initToken = async () => {
   });
 };
 
+const handleModeChange = (val) => {
+  if (val) {
+    ElMessage.success('已切换到本地模式，将使用预设回答');
+  } else {
+    ElMessage.warning('已切换到在线模式，可能受 CORS 限制');
+  }
+};
+
 const handleRequest = async () => {
   if (!queryKeys.value) return;
   if (!openai.value) initOpenAI();
@@ -242,36 +262,43 @@ const handleRequest = async () => {
 
       const lastUserMessage = queryKeys.value;
 
-      try {
-        // 使用 API 工具函数发送请求
-        const response = await fetchGeminiResponse(
-          contents, 
-          currentConfig.value.apiKey, 
-          GEMINI_MODEL_CONFIG
-        );
-        
-        // 处理响应
-        if (response?.candidates?.[0]?.content?.parts?.[0]?.text) {
-          queryInfos.value.messages[queryInfos.value.messages.length - 1].content = 
-            response.candidates[0].content.parts[0].text;
-          messageRef.value.scrollBottom();
-        } else {
-          throw new Error('API 返回了不完整的响应');
-        }
-      } catch (error) {
-        console.error("Gemini API 请求错误:", error);
-        
-        // 首先尝试从备用响应中获取答案
-        const fallbackAnswer = getFallbackAnswer(lastUserMessage);
-        
-        // 更新错误信息
+      // 如果使用本地模式，直接使用预设回答
+      if (useLocalMode.value) {
         queryInfos.value.messages[queryInfos.value.messages.length - 1].content = 
-          fallbackAnswer + "\n\n---\n\n" +
-          "技术错误详情: " + error.message;
-      }
+          getFallbackAnswer(lastUserMessage);
+        messageRef.value.scrollBottom();
+      } else {
+        try {
+          // 使用 API 工具函数发送请求
+          const response = await fetchGeminiResponse(
+            contents, 
+            currentConfig.value.apiKey, 
+            GEMINI_MODEL_CONFIG
+          );
+          
+          // 处理响应
+          if (response?.candidates?.[0]?.content?.parts?.[0]?.text) {
+            queryInfos.value.messages[queryInfos.value.messages.length - 1].content = 
+              response.candidates[0].content.parts[0].text;
+            messageRef.value.scrollBottom();
+          } else {
+            throw new Error('API 返回了不完整的响应');
+          }
+        } catch (error) {
+          console.error("Gemini API 请求错误:", error);
+          
+          // 首先尝试从备用响应中获取答案
+          const fallbackAnswer = getFallbackAnswer(lastUserMessage);
+          
+          // 更新错误信息
+          queryInfos.value.messages[queryInfos.value.messages.length - 1].content = 
+            fallbackAnswer + "\n\n---\n\n" +
+            "技术错误详情: " + error.message;
+        }
 
-      if (!queryInfos.value.messages[queryInfos.value.messages.length - 1].content) {
-        throw new Error('未收到有效的 Gemini API 响应');
+        if (!queryInfos.value.messages[queryInfos.value.messages.length - 1].content) {
+          throw new Error('未收到有效的 Gemini API 响应');
+        }
       }
     } else {
       const requestConfig = {
