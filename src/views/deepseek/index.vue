@@ -108,7 +108,7 @@ const useLocalMode = ref(true); // 默认使用本地模式
 
 const queryInfos = ref({
   messages: [],
-  model: 'gemini-chat',
+  model: 'deepseek-chat',
   ...MODEL_CONFIG
 });
 
