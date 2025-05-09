@@ -42,6 +42,5 @@ export const getFallbackAnswer = (question) => {
       return FALLBACK_ANSWERS[key];
     }
   }
-  
   return DEFAULT_ANSWER;
 }; 
