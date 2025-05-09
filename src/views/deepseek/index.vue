@@ -2,7 +2,9 @@
   <div class="inner-html-container">
     <div class="page">
       <div class="tips">
-        <div class="title">{{queryInfos.model}}</div>
+        <div class="title">{{ queryInfos.model }} <span v-if="queryInfos.model == 'deepseek-chat'">
+            当前余额为：￥{{ totalAmt || 0 }}
+          </span></div>
         <div class="desc" v-if="!isMobile">
           本网站采用本地缓存模式运行，不会留存任何涉及您个人的信息数据，请放心使用。
         </div>
@@ -10,12 +12,12 @@
       </div>
       <div class="grid-space-between" :class="!isMobile ? 'grid-box' : ''">
         <div class="left-container" v-if="!isMobile">
-          <el-button type="primary" class="add-btn" :icon="Plus"
-            size="large" @click="handleAddSession">新建对话</el-button>
+          <el-button type="primary" class="add-btn" :icon="Plus" size="large" @click="handleAddSession">新建对话</el-button>
           <div class="session-area">
             <div class="session-item" :class="activeIndex == index ? 'session-item-active' : ''"
               v-for="(item, index) in sessionList" :key="index" @click="handleChangeSessionIndex(index)">
-              <span :class="activeIndex == index ? 'active-node' : 'normal-node'" v-if="editIndex != index">{{item.title}}</span>
+              <span :class="activeIndex == index ? 'active-node' : 'normal-node'"
+                v-if="editIndex != index">{{ item.title }}</span>
               <el-input :ref="`renameRef_${index}`" autofocus v-model="item.title" v-else size="small"
                 style="width: 120px" @blur="editIndex = -1" @change="editIndex = -1" />
               <div class="icon-box">
@@ -36,20 +38,19 @@
           <div class="message-area">
             <MessageComp ref="messageRef" :message="queryInfos.messages" :loading="loading"></MessageComp>
           </div>
-          <div  class="user-tokens" :class="isMobile ? 'left-space' : ''">
+          <!-- <div  class="user-tokens" :class="isMobile ? 'left-space' : ''">
             <span v-if="queryInfos.model=='deepseek-chat'">
             当前余额为：￥{{ totalAmt || 0 }}
             </span>
             <span v-else>免费</span>
-          </div>
+          </div> -->
           <div class="input-area" :class="isMobile ? 'left-space' : ''">
-            <el-input v-model="queryKeys" id="keyInput" placeholder="请输入内容" show-word-limit
-              @keydown.enter.native="(e) => {
-                if (e.isComposing || loading) return;
-                handleRequest();
-              }" />
+            <el-input v-model="queryKeys" id="keyInput" placeholder="请输入内容" show-word-limit @keydown.enter.native="(e) => {
+              if (e.isComposing || loading) return;
+              handleRequest();
+            }" />
             <el-select v-model="queryInfos.model" class="model-select" @change="handleModelChange">
-              <el-option label="DeepSeek" value="deepseek-chat" />
+              <!-- <el-option label="DeepSeek" value="deepseek-chat" /> -->
               <el-option label="Gemini" value="gemini-chat" />
             </el-select>
             <el-button style="height: 40px" type="primary" @click="handleRequest" :disabled="!queryKeys"
@@ -62,6 +63,8 @@
         </div>
       </div>
     </div>
+    <!-- 主题选择器 -->
+    <ThemeSelector />
   </div>
 </template>
 
@@ -69,12 +72,14 @@
 import { ref, watch, onMounted, nextTick } from 'vue';
 import OpenAI from "openai";
 import MessageComp from "./components/messageComp.vue";
+import ThemeSelector from "./components/ThemeSelector.vue";
 import { Promotion, Delete, EditPen, Brush, Plus } from "@element-plus/icons-vue";
 import { getTokens } from "@/api/modules/deepseek.js";
 import { ElMessage, ElMessageBox } from "element-plus";
 import MobileDetect from "mobile-detect";
 import { API_CONFIG as DEEPSEEK_CONFIG, MODEL_CONFIG, STORAGE_KEYS } from '@/config/deepseek';
-import { API_CONFIG as GEMINI_CONFIG,MODEL_CONFIG as GEMINI_MODEL_CONFIG } from '@/config/gemini';
+import { API_CONFIG as GEMINI_CONFIG, MODEL_CONFIG as GEMINI_MODEL_CONFIG } from '@/config/gemini';
+import { applyTheme, getCurrentTheme } from '@/config/theme';
 
 // 响应式数据
 const isMobile = ref(false);
@@ -89,7 +94,7 @@ const messageRef = ref(null);
 
 const queryInfos = ref({
   messages: [],
-  model:'deepseek-chat',
+  model: 'gemini-chat',
   ...MODEL_CONFIG
 });
 
@@ -226,13 +231,13 @@ const handleRequest = async () => {
   try {
     loading.value = true;
     queryInfos.value.messages.push({ role: "assistant", content: "" });
-    
+
     if (queryInfos.value.model === 'gemini-chat') {
       const contents = queryInfos.value.messages.slice(0, -1).map(msg => ({
         parts: [{ text: msg.content }],
         role: msg.role === 'user' ? 'user' : 'model'
       }));
-    
+
       const response = await fetch(currentConfig.value.baseURL, {
         method: 'POST',
         headers: {
@@ -243,27 +248,27 @@ const handleRequest = async () => {
           contents
         })
       });
-    
+
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
-    
+
       const reader = response.body.getReader();
       const decoder = new TextDecoder();
-      
+
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
-        
+
         const chunk = decoder.decode(value, { stream: true });
         const data = JSON.parse(chunk);
-        
+
         if (data?.candidates?.[0]?.content?.parts?.[0]?.text) {
           queryInfos.value.messages[queryInfos.value.messages.length - 1].content += data.candidates[0].content.parts[0].text;
           messageRef.value.scrollBottom();
         }
       }
-      
+
       if (!queryInfos.value.messages[queryInfos.value.messages.length - 1].content) {
         throw new Error('未收到有效的 Gemini API 响应');
       }
@@ -278,7 +283,7 @@ const handleRequest = async () => {
         queryInfos.value.messages[queryInfos.value.messages.length - 1].content += part.choices[0].delta.content;
       }
     }
-    
+
     messageRef.value.scrollBottom();
     sessionList.value[activeIndex.value].messages = queryInfos.value.messages;
     loading.value = false;
@@ -294,6 +299,13 @@ onMounted(async () => {
   meta.name = 'viewport';
   meta.content = 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no';
   document.head.appendChild(meta);
+
+  document.body.style.margin = '0';
+  document.body.style.padding = '0';
+  document.body.style.overflow = 'hidden';
+
+  // 初始化主题
+  applyTheme(getCurrentTheme());
 
   initSessionList();
   initIndex();

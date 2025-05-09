@@ -2,12 +2,14 @@
   <div class="container-message" id="messageCompBox">
     <template v-if="message.length">
       <div class="box-item" v-for="(item, index) in message" :key="`message_${index}`">
-        <div :class="['message-item', item.role === 'assistant' ? 'message-item--assistant' : 'message-item--user']" v-if="item.role === 'assistant' || item.content">
+        <div :class="['message-item', item.role === 'assistant' ? 'message-item--assistant' : 'message-item--user']"
+          v-if="item.role === 'assistant' || item.content">
           <el-avatar class="message-item__avatar" v-if="item.role === 'assistant'">
             <img src="../images/ai.png" />
           </el-avatar>
           <div v-else></div>
-          <div :class="['message-item__content', item.role === 'assistant' ? 'message-item__content--left' : 'message-item__content--right']">
+          <div
+            :class="['message-item__content', item.role === 'assistant' ? 'message-item__content--left' : 'message-item__content--right']">
             <div class="message-item__text">
               <Markdown v-loading :source="item.content || '思考中...'" />
             </div>
@@ -15,6 +17,7 @@
           <el-avatar class="message-item__avatar" v-if="item.role !== 'assistant'">
             <img src="../images/user.png" />
           </el-avatar>
+          <!-- <el-avatar src="../images/user1.png" v-if="item.role !== 'assistant'" /> -->
           <div v-else></div>
         </div>
       </div>
@@ -55,6 +58,15 @@ defineExpose({
   width: 100%;
   height: 100%;
   overflow: auto;
+  
+  &::-webkit-scrollbar {
+    width: 4px;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: rgba(var(--primary-color-rgb, 254, 44, 85), 0.3);
+    border-radius: 2px;
+  }
 }
 
 .empty-box {
@@ -86,15 +98,20 @@ defineExpose({
   &__avatar {
     width: 36px;
     height: 36px;
-    background-color: #121212;
-    border: 2px solid #fe2c55;
+    background-color: rgba(18, 18, 18, 0.6);
+    border: 2px solid rgba(var(--primary-color-rgb, 254, 44, 85), 0.8);
     padding: 4px;
+    box-shadow: 0 0 10px rgba(var(--primary-color-rgb, 254, 44, 85), 0.2);
   }
 
   &__content {
-    background-color: #2f2f2f;
+    background-color: var(--background-color, rgba(47, 47, 47, 0.5));
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
     position: relative;
-    border-radius: 8px;
+    border-radius: 12px;
+    border: 1px solid var(--border-color, rgba(255, 255, 255, 0.05));
+    box-shadow: 0 0 15px rgba(0, 0, 0, 0.1);
 
     &--left::before,
     &--right::before {
@@ -107,18 +124,18 @@ defineExpose({
     }
 
     &--left::before {
-      border-right-color: #2f2f2f;
+      border-right-color: var(--background-color, rgba(47, 47, 47, 0.5));
       left: -9px;
     }
 
     &--right::before {
-      border-left-color: #2f2f2f;
+      border-left-color: var(--background-color, rgba(47, 47, 47, 0.5));
       right: -9px;
     }
   }
 
   &__text {
-    padding: 0rem 12px;
+    padding: 0.5rem 12px;
     color: #fff;
     position: relative;
     font-size: 0.875rem;
@@ -135,6 +152,12 @@ defineExpose({
       overflow-x: auto;
       white-space: pre-wrap;
       word-wrap: break-word;
+      background-color: rgba(18, 18, 18, 0.6);
+      backdrop-filter: blur(5px);
+      -webkit-backdrop-filter: blur(5px);
+      border-radius: 6px;
+      padding: 10px;
+      border: 1px solid var(--border-color, rgba(255, 255, 255, 0.05));
     }
 
     :deep(code) {
@@ -143,7 +166,13 @@ defineExpose({
       overflow-x: auto;
       white-space: pre-wrap;
       word-wrap: break-word;
+      background-color: rgba(18, 18, 18, 0.6);
+      border-radius: 4px;
+      padding: 2px 5px;
     }
   }
+}
+.message-item__avatar {
+  border-radius: 50%;
 }
 </style>
