@@ -4,12 +4,23 @@
   "version": "0.0.1",
   "type": "module",
   "description": "Vue3 Vite Deepseek Gemini Project",
-  "homepage":"https://euzhi.com/",
-  "keywords":["element-plus","vue3","vite","deepseek","vue3-markdown-it","markdown-it","highlight.js","openai","gemini"],
+  "homepage": "https://selbstlader.github.io/vue3-gemini/",
+  "keywords": [
+    "element-plus",
+    "vue3",
+    "vite",
+    "deepseek",
+    "vue3-markdown-it",
+    "markdown-it",
+    "highlight.js",
+    "openai",
+    "gemini"
+  ],
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "deploy": "vite build && npx gh-pages -d dist"
   },
   "dependencies": {
     "@element-plus/icons-vue": "^2.3.1",
@@ -28,9 +39,13 @@
   },
   "devDependencies": {
     "@vitejs/plugin-vue": "^5.2.1",
+    "gh-pages": "^6.1.1",
     "rollup-plugin-visualizer": "^5.14.0",
     "terser": "^5.38.1",
     "vite": "^6.0.5",
     "vite-plugin-compression": "^0.5.1"
-  }
+  },
+  "main": "vite.config.js",
+  "author": "",
+  "license": "ISC"
 }

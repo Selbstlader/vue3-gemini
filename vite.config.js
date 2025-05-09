@@ -5,6 +5,7 @@ import { visualizer } from 'rollup-plugin-visualizer';
 import viteCompression from 'vite-plugin-compression';
 
 export default defineConfig({
+  base: process.env.NODE_ENV === 'production' ? '/vue3-gemini/' : '/',
   plugins: [
     vue(),
     viteCompression({
