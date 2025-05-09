@@ -55,14 +55,4 @@ export default defineConfig({
     },
     chunkSizeWarningLimit: 2000,
   },
-  // server: {
-  //   proxy: {
-  //     "/user": {
-  //       target: "https://api.deepseek.com/user",
-  //       changeOrigin: true,
-  //       secure: false,
-  //       rewrite: (path) => path.replace(/^\/user/, "/"),
-  //     },
-  //   },
-  // },
 });
