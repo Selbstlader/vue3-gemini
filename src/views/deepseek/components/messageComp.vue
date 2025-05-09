@@ -1,47 +1,50 @@
 <template>
-  <div ref="messageAreaRef" class="message-area-container">
-    <div class="message-item" v-for="(item, index) in message" :key="index"
-      :class="item.role === 'user' ? 'user' : 'assistant'">
-      <div class="avatar">
-        <img v-if="item.role === 'user'" src="../images/user.png" alt="user">
-        <img v-else src="../images/ai.png" alt="ai">
-      </div>
-      <div class="content">
-        <Markdown v-if="item.content" :source="item.content" />
-        <div class="markdown-body loading" v-else-if="loading && index === message.length - 1">
-          <div class="typing-animation">
-            <span></span>
-            <span></span>
-            <span></span>
+  <div class="container-message" id="messageCompBox">
+    <template v-if="message.length">
+      <div class="box-item" v-for="(item, index) in message" :key="`message_${index}`">
+        <div :class="['message-item', item.role === 'assistant' ? 'message-item--assistant' : 'message-item--user']"
+          v-if="item.role === 'assistant' || item.content">
+          <el-avatar class="message-item__avatar" v-if="item.role === 'assistant'">
+            <img src="../images/ai.png" />
+          </el-avatar>
+          <div v-else></div>
+          <div
+            :class="['message-item__content', item.role === 'assistant' ? 'message-item__content--left' : 'message-item__content--right']">
+            <div class="message-item__text">
+              <Markdown v-loading :source="item.content || '思考中...'" />
+            </div>
           </div>
+          <el-avatar class="message-item__avatar" v-if="item.role !== 'assistant'">
+            <img src="../images/user.png" />
+          </el-avatar>
+          <!-- <el-avatar src="../images/user1.png" v-if="item.role !== 'assistant'" /> -->
+          <div v-else></div>
         </div>
       </div>
-    </div>
+    </template>
+    <template v-else>
+      <div class="empty-box">
+        <el-empty description="暂无对话信息"></el-empty>
+      </div>
+    </template>
   </div>
 </template>
 
 <script setup>
-import { nextTick, ref } from 'vue';
+import { nextTick } from 'vue';
 import Markdown from "vue3-markdown-it";
 
-defineProps({
+const props = defineProps({
   message: {
     type: Array,
     default: () => [],
   },
-  loading: {
-    type: Boolean,
-    default: false
-  }
 });
-
-const messageAreaRef = ref(null);
 
 const scrollBottom = () => {
   nextTick(() => {
-    if (messageAreaRef.value) {
-      messageAreaRef.value.scrollTop = messageAreaRef.value.scrollHeight;
-    }
+    const div = document.getElementById("messageCompBox");
+    div.scrollTop = div.scrollHeight - div.clientHeight;
   });
 };
 
@@ -51,151 +54,129 @@ defineExpose({
 </script>
 
 <style scoped lang="scss">
-.message-area-container {
+.container-message {
+  width: 100%;
   height: 100%;
-  max-height: calc(100vh - 140px); /* 限制最大高度 */
-  overflow-y: auto; /* 启用垂直滚动 */
-  overflow-x: hidden;
-  padding-right: 8px;
-  margin-bottom: 16px;
-  color: #fff;
-
-  /* 增加滚动条样式 */
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  
   &::-webkit-scrollbar {
-    width: 5px;
+    width: 4px;
+    display: initial;
   }
 
   &::-webkit-scrollbar-thumb {
-    background: rgba(254, 44, 85, 0.5);
-    border-radius: 8px;
+    background: rgba(var(--primary-color-rgb, 254, 44, 85), 0.3);
+    border-radius: 2px;
+    display: initial;
   }
-  
-  /* 移动端适配 */
-  @media (max-width: 768px) {
-    max-height: calc(100vh - 260px); /* 调整移动端最大高度 */
-    padding-right: 4px;
-    margin-bottom: 8px;
-  }
+}
+
+.empty-box {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.box-item {
+  margin-bottom: 12px;
 }
 
 .message-item {
-  display: flex;
-  margin-bottom: 20px;
-  
-  &.user {
-    flex-direction: row-reverse;
-    
-    .content {
-      margin-right: 12px;
-      background-color: rgba(254, 44, 85, 0.2);
-      border: 1px solid rgba(254, 44, 85, 0.3);
-    }
+  display: grid;
+  column-gap: 8px;
+
+  &--user {
+    grid-template-columns: 0% auto 40px;
+    justify-content: end;
   }
-  
-  &.assistant .content {
-    margin-left: 12px;
-    background-color: rgba(31, 31, 31, 0.4);
-    border: 1px solid rgba(255, 255, 255, 0.1);
+
+  &--assistant {
+    grid-template-columns: 40px auto 1%;
+    justify-content: start;
   }
-  
-  .avatar {
-    width: 40px;
-    height: 40px;
-    border-radius: 50%;
-    overflow: hidden;
-    flex-shrink: 0;
-    
-    img {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-    }
+
+  &__avatar {
+    width: 36px;
+    height: 36px;
+    background-color: rgba(18, 18, 18, 0.6);
+    border: 2px solid rgba(var(--primary-color-rgb, 254, 44, 85), 0.8);
+    padding: 4px;
+    box-shadow: 0 0 10px rgba(var(--primary-color-rgb, 254, 44, 85), 0.2);
   }
-  
-  .content {
-    max-width: 80%;
-    padding: 10px 14px;
+
+  &__content {
+    background-color: var(--background-color, rgba(47, 47, 47, 0.5));
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    position: relative;
     border-radius: 12px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    border: 1px solid var(--border-color, rgba(255, 255, 255, 0.05));
+    box-shadow: 0 0 15px rgba(0, 0, 0, 0.1);
+
+    &--left::before,
+    &--right::before {
+      content: "";
+      width: 0;
+      height: 0;
+      position: absolute;
+      border: 5px solid transparent;
+      top: 15px;
+    }
+
+    &--left::before {
+      border-right-color: var(--background-color, rgba(47, 47, 47, 0.5));
+      left: -9px;
+    }
+
+    &--right::before {
+      border-left-color: var(--background-color, rgba(47, 47, 47, 0.5));
+      right: -9px;
+    }
   }
-  
-  /* 移动端适配 */
-  @media (max-width: 768px) {
-    margin-bottom: 16px;
-    
-    .avatar {
-      width: 32px;
-      height: 32px;
+
+  &__text {
+    padding: 0.5rem 12px;
+    color: #fff;
+    position: relative;
+    font-size: 0.875rem;
+    line-height: 1.4;
+
+    :deep(p) {
+      margin: 0.5rem 0;
     }
-    
-    .content {
-      max-width: calc(100% - 50px);
-      padding: 8px 10px;
-      font-size: 14px;
+
+    :deep(pre) {
+      margin: 0.5rem 0;
+      font-size: 0.8125rem;
+      max-width: 100%;
+      overflow-x: auto;
+      white-space: pre-wrap;
+      word-wrap: break-word;
+      background-color: rgba(18, 18, 18, 0.6);
+      backdrop-filter: blur(5px);
+      -webkit-backdrop-filter: blur(5px);
+      border-radius: 6px;
+      padding: 10px;
+      border: 1px solid var(--border-color, rgba(255, 255, 255, 0.05));
     }
-    
-    &.user .content {
-      margin-right: 8px;
-    }
-    
-    &.assistant .content {
-      margin-left: 8px;
+
+    :deep(code) {
+      font-size: 0.8125rem;
+      max-width: 100%;
+      overflow-x: auto;
+      white-space: pre-wrap;
+      word-wrap: break-word;
+      background-color: rgba(18, 18, 18, 0.6);
+      border-radius: 4px;
+      padding: 2px 5px;
     }
   }
 }
-
-.typing-animation {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  
-  span {
-    display: inline-block;
-    width: 8px;
-    height: 8px;
-    background-color: rgba(254, 44, 85, 0.7);
-    border-radius: 50%;
-    margin: 0 3px;
-    animation: typing 1.5s infinite ease-in-out;
-    
-    &:nth-child(1) {
-      animation-delay: 0s;
-    }
-    
-    &:nth-child(2) {
-      animation-delay: 0.3s;
-    }
-    
-    &:nth-child(3) {
-      animation-delay: 0.6s;
-    }
-  }
-}
-
-@keyframes typing {
-  0%, 100% {
-    transform: translateY(0);
-  }
-  50% {
-    transform: translateY(-8px);
-  }
-}
-
-:deep(.markdown-body) {
-  background: transparent;
-  color: #fff;
-  
-  pre {
-    background-color: rgba(0, 0, 0, 0.3);
-    border-radius: 6px;
-    padding: 10px;
-  }
-  
-  code {
-    background-color: rgba(0, 0, 0, 0.3);
-    color: #f8f8f2;
-    padding: 2px 4px;
-    border-radius: 3px;
-  }
+.message-item__avatar {
+  border-radius: 50%;
 }
 </style>
