@@ -32,6 +32,7 @@ export default defineConfig({
     },
   },
   build: {
+    outDir: 'docs',
     target: 'es2015',
     minify: 'terser',
     cssCodeSplit: true,
