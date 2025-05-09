@@ -80,6 +80,8 @@ import MobileDetect from "mobile-detect";
 import { API_CONFIG as DEEPSEEK_CONFIG, MODEL_CONFIG, STORAGE_KEYS } from '@/config/deepseek';
 import { API_CONFIG as GEMINI_CONFIG, MODEL_CONFIG as GEMINI_MODEL_CONFIG } from '@/config/gemini';
 import { applyTheme, getCurrentTheme } from '@/config/theme';
+import { fetchGeminiResponse } from "@/utils/api.js";
+import { getFallbackAnswer } from "@/utils/fallback.js";
 
 // 响应式数据
 const isMobile = ref(false);
@@ -238,52 +240,34 @@ const handleRequest = async () => {
         role: msg.role === 'user' ? 'user' : 'model'
       }));
 
-      // 在生产环境中使用备用逻辑，避免 CORS 问题
+      const lastUserMessage = queryKeys.value;
+
       try {
-        // 使用 Google Gemini API 直接调用
-        const apiUrl = import.meta.env.PROD 
-          ? `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${currentConfig.value.apiKey}`
-          : currentConfig.value.baseURL;
-            
-        const response = await fetch(apiUrl, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            ...GEMINI_MODEL_CONFIG,
-            contents
-          })
-        });
-
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
-        }
-
-        const reader = response.body.getReader();
-        const decoder = new TextDecoder();
-
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
-
-          const chunk = decoder.decode(value, { stream: true });
-          const data = JSON.parse(chunk);
-
-          if (data?.candidates?.[0]?.content?.parts?.[0]?.text) {
-            queryInfos.value.messages[queryInfos.value.messages.length - 1].content += data.candidates[0].content.parts[0].text;
-            messageRef.value.scrollBottom();
-          }
+        // 使用 API 工具函数发送请求
+        const response = await fetchGeminiResponse(
+          contents, 
+          currentConfig.value.apiKey, 
+          GEMINI_MODEL_CONFIG
+        );
+        
+        // 处理响应
+        if (response?.candidates?.[0]?.content?.parts?.[0]?.text) {
+          queryInfos.value.messages[queryInfos.value.messages.length - 1].content = 
+            response.candidates[0].content.parts[0].text;
+          messageRef.value.scrollBottom();
+        } else {
+          throw new Error('API 返回了不完整的响应');
         }
       } catch (error) {
         console.error("Gemini API 请求错误:", error);
         
-        // 降级处理 - 提供静态响应
+        // 首先尝试从备用响应中获取答案
+        const fallbackAnswer = getFallbackAnswer(lastUserMessage);
+        
+        // 更新错误信息
         queryInfos.value.messages[queryInfos.value.messages.length - 1].content = 
-          "很抱歉，目前 Gemini API 在 GitHub Pages 上遇到了访问限制。这是因为 GitHub Pages 无法直接请求外部 API（CORS 限制）。在实际项目中，您需要：\n\n" +
-          "1. 使用后端代理服务器处理请求\n" +
-          "2. 或使用支持 CORS 的 API 网关\n\n" +
-          "请在本地开发环境中使用此应用。";
+          fallbackAnswer + "\n\n---\n\n" +
+          "技术错误详情: " + error.message;
       }
 
       if (!queryInfos.value.messages[queryInfos.value.messages.length - 1].content) {

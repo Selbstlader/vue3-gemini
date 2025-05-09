@@ -1,10 +1,16 @@
 // gemini2.0配置文件
 const API_KEY = import.meta.env.VITE_GEMINI_API_KEY || 'AIzaSyAbwQ-07CDrLhC2oXoS_BPry_Qrl4WXLi0' // 从环境变量中获取API密钥
 
+// 原始 API URL
+const ORIGINAL_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${API_KEY}`;
+
+// CORS 代理 URL
+const CORS_PROXY = 'https://corsproxy.io/?';
+
 // 构建基础 URL - 使用代理或直接访问 Google API
 const BASE_URL = import.meta.env.PROD 
-  ? '/api/gemini' // 生产环境使用反向代理 
-  : `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${API_KEY}`
+  ? `${CORS_PROXY}${encodeURIComponent(ORIGINAL_URL)}` // 生产环境使用 CORS 代理
+  : ORIGINAL_URL;
 
 export const API_CONFIG = {
     baseURL: BASE_URL,
