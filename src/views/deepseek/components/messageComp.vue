@@ -69,6 +69,13 @@ defineExpose({
     background: rgba(254, 44, 85, 0.5);
     border-radius: 8px;
   }
+  
+  /* 移动端适配 */
+  @media (max-width: 768px) {
+    max-height: calc(100vh - 260px); /* 调整移动端最大高度 */
+    padding-right: 4px;
+    margin-bottom: 8px;
+  }
 }
 
 .message-item {
@@ -110,6 +117,30 @@ defineExpose({
     padding: 10px 14px;
     border-radius: 12px;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  }
+  
+  /* 移动端适配 */
+  @media (max-width: 768px) {
+    margin-bottom: 16px;
+    
+    .avatar {
+      width: 32px;
+      height: 32px;
+    }
+    
+    .content {
+      max-width: calc(100% - 50px);
+      padding: 8px 10px;
+      font-size: 14px;
+    }
+    
+    &.user .content {
+      margin-right: 8px;
+    }
+    
+    &.assistant .content {
+      margin-left: 8px;
+    }
   }
 }
 

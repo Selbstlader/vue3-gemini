@@ -2,17 +2,53 @@
   <div class="inner-html-container">
     <div class="page">
       <div class="tips">
-        <div class="title">{{ queryInfos.model }} <span v-if="queryInfos.model == 'deepseek-chat'">
+        <div class="title">
+          <span class="model-name">{{ queryInfos.model }}</span>
+          <span v-if="queryInfos.model == 'deepseek-chat'">
             当前余额为：￥{{ totalAmt || 0 }}
-          </span></div>
-        <div class="desc" v-if="!isMobile">
-          本网站采用本地缓存模式运行，不会留存任何涉及您个人的信息数据，请放心使用。
+          </span>
         </div>
-        <div @click="handleClearStorage" v-else class="pointer">清空</div>
+        <div class="controls">
+          <div class="model-settings" v-if="isMobile">
+            <el-select v-model="queryInfos.model" size="small" class="mobile-model-select" @change="handleModelChange">
+              <el-option label="Gemini" value="gemini-chat" />
+            </el-select>
+          </div>
+          <div class="desc" v-if="!isMobile">
+            本网站采用本地缓存模式运行，不会留存任何涉及您个人的信息数据，请放心使用。
+          </div>
+          <div @click="handleClearStorage" v-else class="pointer">清空</div>
+        </div>
       </div>
       <div class="grid-space-between" :class="!isMobile ? 'grid-box' : ''">
         <div class="left-container" v-if="!isMobile">
           <el-button type="primary" class="add-btn" :icon="Plus" size="large" @click="handleAddSession">新建对话</el-button>
+          <div class="session-area">
+            <div class="session-item" :class="activeIndex == index ? 'session-item-active' : ''"
+              v-for="(item, index) in sessionList" :key="index" @click="handleChangeSessionIndex(index)">
+              <span :class="activeIndex == index ? 'active-node' : 'normal-node'"
+                v-if="editIndex != index">{{ item.title }}</span>
+              <el-input :ref="`renameRef_${index}`" autofocus v-model="item.title" v-else size="small"
+                style="width: 120px" @blur="editIndex = -1" @change="editIndex = -1" />
+              <div class="icon-box">
+                <el-icon class="icon" color="#fff" @click.stop="handleClearSession(index)">
+                  <Brush />
+                </el-icon>
+                <el-icon class="icon" color="#fff" @click.stop="handleFocusInput(index)">
+                  <EditPen />
+                </el-icon>
+                <el-icon class="icon" color="#fff" @click.stop="handleDeleteSession(index)">
+                  <Delete />
+                </el-icon>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="left-container mobile-sessions" v-else>
+          <div class="mobile-sessions-header">
+            <el-button type="primary" class="add-btn" :icon="Plus" size="small" @click="handleAddSession">新建对话</el-button>
+            <span class="mobile-title">历史会话</span>
+          </div>
           <div class="session-area">
             <div class="session-item" :class="activeIndex == index ? 'session-item-active' : ''"
               v-for="(item, index) in sessionList" :key="index" @click="handleChangeSessionIndex(index)">
@@ -44,7 +80,7 @@
             </span>
             <span v-else>免费</span>
           </div> -->
-          <div class="model-settings" style="margin-bottom: 10px; text-align: left;">
+          <div class="mode-switcher" style="margin-bottom: 10px; text-align: left;">
             <el-switch
               v-model="useLocalMode"
               active-text="本地模式（无需API）"
@@ -60,8 +96,7 @@
               if (e.isComposing || loading) return;
               handleRequest();
             }" />
-            <el-select v-model="queryInfos.model" class="model-select" @change="handleModelChange">
-              <!-- <el-option label="DeepSeek" value="deepseek-chat" /> -->
+            <el-select v-model="queryInfos.model" class="model-select" v-if="!isMobile" @change="handleModelChange">
               <el-option label="Gemini" value="gemini-chat" />
             </el-select>
             <el-button style="height: 40px" type="primary" @click="handleRequest" :disabled="!queryKeys"
@@ -80,7 +115,7 @@
 </template>
 
 <script setup>
-import { ref, watch, onMounted, nextTick } from 'vue';
+import { ref, watch, onMounted, nextTick, onUnmounted } from 'vue';
 import OpenAI from "openai";
 import MessageComp from "./components/messageComp.vue";
 import ThemeSelector from "./components/ThemeSelector.vue";
@@ -340,11 +375,26 @@ onMounted(async () => {
   initOpenAI();
   initToken();
 
+  // 使用 MobileDetect 检测移动设备
   const md = new MobileDetect(window.navigator.userAgent);
-  isMobile.value = md.mobile();
+  isMobile.value = !!md.mobile() || window.innerWidth <= 768;
+  
+  // 添加窗口大小变化监听，以便动态调整布局
+  window.addEventListener('resize', handleResize);
+  
   await nextTick()
   messageRef.value.scrollBottom();
 });
+
+// 添加卸载时的清理
+onUnmounted(() => {
+  window.removeEventListener('resize', handleResize);
+});
+
+// 窗口大小变化处理函数
+const handleResize = () => {
+  isMobile.value = window.innerWidth <= 768;
+};
 </script>
 
 <style scoped lang="scss">
